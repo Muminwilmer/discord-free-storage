@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload</title>
+  <style>
+    /* Basic styling for the table */
+    table {
+        width: 50%;
+        border-collapse: collapse;
+        max-width: 100%;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+        padding-right: 100px;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+</style>
+</head>
+<body>
+  <h1>Upload a File</h1>
+  <form id="uploadForm">
+    <input type="file" id="fileInput" name="file" required>
+    <button type="submit">Upload File</button>
+  </form>
+  <h2>Downloading/Uploading</h2>
+  <div id="loading"></div>
+  <h2>Files List</h2>
+  <button id="fetchFiles">Get Files</button>
+  <ul id="filesList"></ul>
+  <table id="dataTable" class="table">
+    <thead>
+      <tr>
+        <!--<th>ID</th>-->
+        <th>Name</th>
+        <th>Type</th>
+        <th>Size</th>
+        <th>Manage</th>
+      </tr>
+    </thead>
+
+    <tbody id="dataTableBody">
+      <tr>
+
+      </tr>
+    </tbody>
+  </table>
+
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      const formData = new FormData();
+
+      formData.append('file', file);
+
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        // alert('File received successfully!');
+        pollQueue(file.name,"Upload")
+      } else {
+        alert('File upload failed.');
+      }
+    });
+    window.onload = function() {
+      loadFiles()
+    }
+    document.getElementById('fetchFiles').addEventListener('click', async () => {
+      loadFiles()
+    });
+    async function loadFiles(){
+      try {
+        const response = await fetch('/files'); // Assuming you create this route
+        const files = await response.json();
+        const filesList = document.getElementById('filesList');
+        filesList.innerHTML = ''; // Clear existing list
+        const table = document.getElementById('dataTableBody') 
+        table.innerHTML = ""
+        files.forEach(file => {
+          let row = table.insertRow();
+
+
+          let name = row.insertCell(0);
+          name.innerHTML = file.name;
+          let type = row.insertCell(1);
+          type.innerHTML = file.type;
+          let size = row.insertCell(2);
+          size.innerHTML = file.size;
+
+          let download = row.insertCell(3);
+          let buttonDownload = document.createElement('button');
+          buttonDownload.innerHTML = "Download"
+          buttonDownload.dataset.id = file.ids[0]
+
+          let buttonDelete = document.createElement('button');
+          buttonDelete.innerHTML = "Delete"
+          buttonDelete.dataset.id = file.ids[0]
+
+          buttonDownload.addEventListener('click', async () => {
+            const fileId = buttonDownload.dataset.id; // Get file ID
+            try {
+                pollQueue(file.ids[0],"Download")
+                const downloadResponse = await fetch(`/download?id=${fileId}&name=${file.name}&file=${file.type}`);
+                // Create a link to download the file
+                const blob = await downloadResponse.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = file.name;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch (downloadError) {
+                console.error('Error downloading file:', downloadError);
+            }
+          });
+
+          buttonDelete.addEventListener('click', async () => {
+            const fileId = buttonDownload.dataset.id; // Get file ID
+            try {
+                const downloadResponse = await fetch(`/delete?id=${fileId}`);
+            } catch (downloadError) {
+                console.error('Error downloading file:', downloadError);
+            }
+          });
+
+          download.appendChild(buttonDownload);
+          download.appendChild(buttonDelete);
+        });
+      } catch (error) {
+        console.error('Error fetching files:', error);
+      }
+    }
+    async function pollQueue(fileName, type) {
+      const start = Date.now()
+      const intervalId = setInterval(async () => {
+        try {
+          const response = await fetch(`/queue?name=${fileName}&type=${type.toLowerCase()}&start=${start}`);
+          const data = await response.json();
+          
+          // Stop polling if data is null
+          if (!data) {
+            clearInterval(intervalId);
+            const load = document.getElementById(fileName)
+            load.remove()
+            console.log(`${fileName} is no longer in the queue.`);
+          } else {
+            const load = document.getElementById(fileName) || null
+            if (load){
+              load.innerHTML = `${data.name} (${type}) - ${data.progress} (ETA: ${data.remainingTime})`
+            }else{
+              const text = document.createElement('div')
+              text.innerHTML = `${data.name} (${type}) - ${data.progress} (ETA: ${data.remainingTime})`
+              text.class = type
+              text.id = fileName
+              document.getElementById('loading').appendChild(text);
+            }
+            console.log(`Queue status for ${fileName}:`, data);
+          }
+        } catch (error) {
+          console.error('Error checking queue status:', error);
+          clearInterval(intervalId); // Stop polling if there's an error
+        }
+      }, 2500); // Poll every 2.5 second
+    }
+  </script>
+</body>
+</html>
