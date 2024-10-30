@@ -25,8 +25,8 @@ app.get('/', (req, res) => {
 
 app.post('/upload', upload.single('file'), (req, res) => {
   if (req.file) {
-    const chunks = splitFile(req.file, req.body.encrypted||false, req.body.password||null)
-    sendSplitFiles(client,process.env.discordChannel,chunks,req.file.originalname, req.body.encrypted||false)
+    const chunks = splitFile(req.file, req.body.encrypted, req.body.password)
+    sendSplitFiles(client,process.env.discordChannel,chunks,req.file.originalname, req.body.encrypted)
     res.send('File received successfully!');
   } else {
     res.status(400).send('File upload failed.');
@@ -39,7 +39,6 @@ app.get('/files', (req, res) => {
 });
 
 app.get('/download', async (req, res) => {
-  console.log("a")
   const id = req.query.id;
   const name = req.query.name;
   const file = req.query.file;
@@ -74,7 +73,7 @@ app.get('/queue', async (req, res) => {
   const start = req.query.start
   const result = client[type].get(name);
   if (!result){
-    res.send(null)
+    res.send({done:true})
     return;
   }
   const completedFiles = result.files;

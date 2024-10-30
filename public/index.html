@@ -28,7 +28,7 @@
     <div>
     <input type="file" id="fileInput" name="file" required></div>
     <br><div>
-    <input type="checkbox" id="encryptedCheck" checked=true required>
+    <input type="checkbox" id="encryptedCheck" checked=true>
     <label for="encryptedCheck">Encrypt file</label>
     <input type="password" id="encryptPassword" style="display: block;" placeholder="Upload/Download!" required>
     </div>
@@ -59,7 +59,6 @@
   <table id="dataTable" class="table">
     <thead>
       <tr>
-        <!--<th>ID</th>-->
         <th>Name</th>
         <th>Type</th>
         <th>Size</th>
@@ -142,7 +141,7 @@
             try {
                 pollQueue(file.ids[0],"Download")
 
-                const downloadResponse = await fetch(`/download?name=${fileId}&name=${file.name}&file=${file.type}&pass=${document.getElementById('encryptPassword').value}`)
+                const downloadResponse = await fetch(`/download?id=${fileId}&name=${file.name}&file=${file.type}&pass=${document.getElementById('encryptPassword').value}`)
                 // Create a link to download the file
                 const blob = await downloadResponse.blob();
                 const url = window.URL.createObjectURL(blob);
@@ -181,11 +180,11 @@
           const data = await response.json();
           
           // Stop polling if data is null
-          if (!data) {
-            clearInterval(intervalId);
+          if (data?.done == true) {
             const load = document.getElementById(fileName)
             load.remove()
             console.log(`${fileName} is no longer in the queue.`);
+            clearInterval(intervalId);
           } else {
             const load = document.getElementById(fileName) || null
             if (load){
