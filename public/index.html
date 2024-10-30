@@ -142,7 +142,7 @@
             try {
                 pollQueue(file.ids[0],"Download")
 
-                const downloadResponse = await fetch(`/download?id=${fileId}&name=${file.name}&file=${file.type}&pass=${document.getElementById('encryptPassword').value}`)
+                const downloadResponse = await fetch(`/download?name=${fileId}&name=${file.name}&file=${file.type}&pass=${document.getElementById('encryptPassword').value}`)
                 // Create a link to download the file
                 const blob = await downloadResponse.blob();
                 const url = window.URL.createObjectURL(blob);

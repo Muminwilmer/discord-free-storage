@@ -69,7 +69,7 @@ app.get('/download', async (req, res) => {
 });
 
 app.get('/queue', async (req, res) => {
-  const name = req.query.name;
+  let name = req.query.name
   const type = req.query.type+"Queue";
   const start = req.query.start
   const result = client[type].get(name);
@@ -91,11 +91,16 @@ app.get('/queue', async (req, res) => {
   const remainingSeconds = Math.floor(estimatedRemainingTime / 1000);
   const remainingMinutes = Math.floor(remainingSeconds / 60);
   const remainingSecondsFormatted = remainingSeconds % 60;
-
+  console.log(type)
+  if (type == "downloadQueue"){
+    const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8'));
+    const block = data.find(block => block.ids.includes(name));
+    name = block.name
+  }
   res.status(200).send({
     progress: `${Math.floor(progressPercent * 10) / 10}%`, // Send formatted progress
     remainingTime: `${remainingMinutes}m ${remainingSecondsFormatted}s`, // Send formatted remaining time
-    name: result.name
+    name: name
   });
 });
 
