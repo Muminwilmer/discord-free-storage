@@ -6,7 +6,6 @@ const PORT = process.env.PORT || 3000;
 const fs = require('fs')
 const mime = require('mime-types')
 
-// app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const splitFile = require('./src/splitFile')
@@ -16,8 +15,6 @@ const fetchFiles = require('./src/fetchFiles')
 const client = (require('./src/startDiscord'))();
 
 
-
-// Save files to memory
 const upload = multer({
   storage: multer.memoryStorage()
 });
@@ -26,7 +23,6 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// Route to handle file upload
 app.post('/upload', upload.single('file'), (req, res) => {
   if (req.file) {
     const chunks = splitFile(req.file, req.body.encrypted||false, req.body.password||null)
