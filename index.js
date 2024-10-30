@@ -29,9 +29,8 @@ app.get('/', (req, res) => {
 // Route to handle file upload
 app.post('/upload', upload.single('file'), (req, res) => {
   if (req.file) {
-    
-    const chunks = splitFile(req.file)
-    sendSplitFiles(client,process.env.discordChannel,chunks,req.file.originalname)
+    const chunks = splitFile(req.file, req.body.encrypted||false, req.body.password||null)
+    sendSplitFiles(client,process.env.discordChannel,chunks,req.file.originalname, req.body.encrypted||false)
     res.send('File received successfully!');
   } else {
     res.status(400).send('File upload failed.');
@@ -44,11 +43,13 @@ app.get('/files', (req, res) => {
 });
 
 app.get('/download', async (req, res) => {
+  console.log("a")
   const id = req.query.id;
   const name = req.query.name;
   const file = req.query.file;
+  const password = req.query.pass || "1234"
   try {
-    const fileBuffers = await fetchFiles(client, id, process.env.discordChannel);
+    const fileBuffers = await fetchFiles(client, id, process.env.discordChannel, password);
 
     if (!fileBuffers || !fileBuffers.length) {
       return res.status(404).send('No files found for the specified ID.');

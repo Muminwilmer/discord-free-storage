@@ -1,4 +1,4 @@
-async function sendSplitFiles(client, channelId, chunks, fileName) {
+async function sendSplitFiles(client, channelId, chunks, fileName, encrypted) {
   const fs = require('fs');
   
   const splitName = fileName.match(/^([^.]+)(\..+)?$/);
@@ -6,6 +6,7 @@ async function sendSplitFiles(client, channelId, chunks, fileName) {
   const fileDetails = {
     name: splitName[1] || "corrupt",
     type: splitName[2] || "",
+    encrypted: encrypted || false,
     size: `${Math.round(chunks.reduce((total, chunk) => total + chunk.length, 0)/1000/1000)}MB`||0,
     ids: []
   };

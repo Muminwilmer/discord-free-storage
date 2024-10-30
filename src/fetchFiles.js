@@ -1,5 +1,5 @@
 const fs = require('fs')
-async function fetchFiles(client, id, channel) {
+async function fetchFiles(client, id, channel, password) {
   try {
     const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8'));
     const result = data.find(block => block.ids.includes(id));
@@ -18,6 +18,11 @@ async function fetchFiles(client, id, channel) {
 
     // console.log(fileList);
     const fullFile = Buffer.concat(fileList);
+    if (result.encrypted){
+      const decrypt = require('./decrypt')
+      const decryptedFile = await decrypt(fullFile, password)
+      return decryptedFile
+    }
     return fullFile
   } catch (error) {
     console.error("Error fetching files:", error);

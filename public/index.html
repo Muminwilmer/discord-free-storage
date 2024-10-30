@@ -25,9 +25,32 @@
 <body>
   <h1>Upload a File</h1>
   <form id="uploadForm">
-    <input type="file" id="fileInput" name="file" required>
+    <div>
+    <input type="file" id="fileInput" name="file" required></div>
+    <br><div>
+    <input type="checkbox" id="encryptedCheck" checked=true required>
+    <label for="encryptedCheck">Encrypt file</label>
+    <input type="password" id="encryptPassword" style="display: block;" placeholder="Upload/Download!" required>
+    </div>
+    <br>
     <button type="submit">Upload File</button>
   </form>
+  <script>
+    document.getElementById("encryptedCheck").checked = true;
+    const encryptedCheck = document.getElementById("encryptedCheck");
+    const encryptPassword = document.getElementById("encryptPassword");
+  
+    encryptedCheck.addEventListener("change", () => {
+      if (encryptedCheck.checked) {
+        encryptPassword.style.display = "block";   // Show password field
+        encryptPassword.required = true;           // Make password required
+      } else {
+        encryptPassword.style.display = "none";    // Hide password field
+        encryptPassword.required = false;          // Make password not required
+        encryptPassword.value = "";                // Clear password if unchecked
+      }
+    });
+  </script>
   <h2>Downloading/Uploading</h2>
   <div id="loading"></div>
   <h2>Files List</h2>
@@ -40,6 +63,7 @@
         <th>Name</th>
         <th>Type</th>
         <th>Size</th>
+        <th>Encrypted</th>
         <th>Manage</th>
       </tr>
     </thead>
@@ -61,6 +85,8 @@
       const formData = new FormData();
 
       formData.append('file', file);
+      formData.append('encrypted', document.getElementById('encryptedCheck').checked);
+      formData.append('password', document.getElementById('encryptPassword').value);
 
       const response = await fetch('/upload', {
         method: 'POST',
@@ -99,7 +125,10 @@
           let size = row.insertCell(2);
           size.innerHTML = file.size;
 
-          let download = row.insertCell(3);
+          let encrypted = row.insertCell(3);
+          encrypted.innerHTML = file.encrypted;
+
+          let download = row.insertCell(4);
           let buttonDownload = document.createElement('button');
           buttonDownload.innerHTML = "Download"
           buttonDownload.dataset.id = file.ids[0]
@@ -112,7 +141,8 @@
             const fileId = buttonDownload.dataset.id; // Get file ID
             try {
                 pollQueue(file.ids[0],"Download")
-                const downloadResponse = await fetch(`/download?id=${fileId}&name=${file.name}&file=${file.type}`);
+
+                const downloadResponse = await fetch(`/download?id=${fileId}&name=${file.name}&file=${file.type}&pass=${document.getElementById('encryptPassword').value}`)
                 // Create a link to download the file
                 const blob = await downloadResponse.blob();
                 const url = window.URL.createObjectURL(blob);

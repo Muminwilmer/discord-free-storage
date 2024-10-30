@@ -1,5 +1,9 @@
-function splitFile(file){
-    const fileBuffer = file.buffer;
+function splitFile(file, encrypted, password){
+    let fileBuffer = file.buffer;
+    if (encrypted){
+      const encrypt = require('./encrypt')
+      fileBuffer = encrypt(fileBuffer, password)
+    }
     const chunkSize = 10 * 1024 * 1024; // 8MB in bytes
     const chunks = [];
 
