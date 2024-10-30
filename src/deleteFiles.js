@@ -1,4 +1,4 @@
-const fs = require('fs')
+import fs from 'fs';
 async function deleteFiles(client, id, channelId) {
   const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8'));
   const result = data.find(block => block.ids.includes(id));
@@ -29,4 +29,4 @@ async function deleteFiles(client, id, channelId) {
   const updatedData = data.filter(block => block !== result);
   fs.writeFileSync('./data/files.json', JSON.stringify(updatedData, null, 2), 'utf8');
 }
-module.exports = deleteFiles;
+export default deleteFiles;

@@ -1,4 +1,5 @@
-const crypto = require('crypto')
+import crypto from 'crypto'
+
 function getKey(key) {
   return crypto.createHash('sha256').update(key).digest(); // SHA-256 hash to get 32 bytes
 }
@@ -17,4 +18,4 @@ function decrypt(encryptedBuffer, key) {
   } 
 }
 
-module.exports = decrypt
+export default decrypt

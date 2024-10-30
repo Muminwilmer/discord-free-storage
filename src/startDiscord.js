@@ -1,9 +1,13 @@
+import fs from 'fs';
+import { Client, Collection, GatewayIntentBits } from'discord.js';
+import 'dotenv/config'
+
 function startDiscord(file){
-  const fs = require('fs');
-  const { Client, Collection, GatewayIntentBits } = require('discord.js')
+  
+  
   // const { REST } = require('@discordjs/rest');
   // const { Routes } = require('discord-api-types/v9');
-  require('dotenv/config');
+  
   
   const client = new Client({
     intents: [
@@ -70,4 +74,4 @@ function startDiscord(file){
   client.login(process.env.discordToken);
   return client
 }
-module.exports = startDiscord
+export default startDiscord

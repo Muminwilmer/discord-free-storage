@@ -1,4 +1,4 @@
-const fs = require('fs')
+import fs from 'fs';
 async function fetchFiles(client, id, channel, password) {
   try {
     const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8'));
@@ -16,13 +16,16 @@ async function fetchFiles(client, id, channel, password) {
       return await fetchDiscord(client, fileId, channel, id);
     }));
 
-    // console.log(fileList);
+    console.log(fileList);
     const fullFile = Buffer.concat(fileList);
+    
     if (result.encrypted){
+      console.log("File is encrypted, decrypting using password!")
       const decrypt = require('./decrypt')
       const decryptedFile = await decrypt(fullFile, password)
       return decryptedFile
     }
+    console.log("Complete! Sending back file.")
     return fullFile
   } catch (error) {
     console.error("Error fetching files:", error);
@@ -58,4 +61,4 @@ async function fetchDiscord(client, id, channelId, topId) {
   
   return buffer
 }
-module.exports = fetchFiles
+export default fetchFiles
