@@ -79,7 +79,6 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
 }
 
 async function addToJson(newData) {
-  const fs = require('fs');
   let existingFiles = [];
   try {
     const data = fs.readFileSync('./data/files.json', 'utf8');
