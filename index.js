@@ -23,10 +23,16 @@ const clientModule = await import('./src/startDiscord.js');
 const client = clientModule.default(); // Initialize the Discord client
 
 // Set up multer for handling file uploads
-const upload = multer({
-  // Storage configuration can be modified to save files in memory or on disk
-  dest: 'uploading/' // Directory to save uploaded files temporarily
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploading/'); // Directory to save uploaded files
+  },
+  // filename: (req, file, cb) => {
+  //   cb(null, file.originalname); // Use original file name
+  // }
 });
+
+const upload = multer({ storage });
 
 /*
   Define a route to serve the main HTML page.
