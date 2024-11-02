@@ -166,7 +166,7 @@ app.get('/queue', async (req, res) => {
   // Respond with progress and estimated remaining time
   res.status(200).send({
     progress: `${Math.floor(progressPercent * 10) / 10}%`, // Send formatted progress
-    remainingTime: timeString, // Send formatted remaining time
+    remainingTime: timeString.trim(), // Send formatted remaining time
     name: name // Send the name of the file or operation
   });
 });
