@@ -3,8 +3,6 @@ import { Client, Collection, GatewayIntentBits } from'discord.js';
 import 'dotenv/config'
 
 function startDiscord(file){
-  
-  
   // const { REST } = require('@discordjs/rest');
   // const { Routes } = require('discord-api-types/v9');
   

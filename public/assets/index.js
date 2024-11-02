@@ -17,7 +17,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (event) =
 
   if (response.ok) {
     // alert('File received successfully!');
-    pollQueue(file.name,"Upload", id)
+    pollQueue(id,"Upload")
     loadFiles()
   } else {
     alert('File upload failed.');
@@ -96,7 +96,7 @@ async function loadFiles() {
       buttonDownload.addEventListener('click', async () => {
         const fileId = buttonDownload.dataset.id;
         progressBar.style.display = 'block';
-        pollQueue(fileId,"Download",id)
+        pollQueue(fileId,"Download")
         try {
           const downloadResponse = await fetch(`/download?id=${fileId}&name=${file.name}&file=${file.type}&pass=${document.getElementById('encryptPassword').value}`);
 
@@ -136,13 +136,13 @@ async function loadFiles() {
     console.error('Error fetching files:', error);
   }
 }
-async function pollQueue(fileName, type, progressBarId) {
+async function pollQueue(id, type) {
   const start = Date.now()
   const intervalId = setInterval(async () => {
     try {
-      const response = await fetch(`/queue?name=${fileName}&type=${type.toLowerCase()}&start=${start}`);
+      const response = await fetch(`/queue?name=${id}&type=${type.toLowerCase()}&start=${start}`);
       const data = await response.json();
-      const bar = document.getElementById(progressBarId);
+      const bar = document.getElementById(id);
 
       if (data?.done === true || parseInt(data.progress)>=100) {
         loadFiles();
@@ -154,15 +154,15 @@ async function pollQueue(fileName, type, progressBarId) {
         bar.style.display = 'block';  // Show the progress bar
         if (fill) {
           fill.style.width = data.progress;  // Set the width to the progress value
-          console.log(document.getElementById("+"+progressBarId))
-          const ETA = document.getElementById("+"+progressBarId)
-          ETA.outerHTML = `<span style="padding-right:4em;max-width: 6em;" id="+${progressBarId}"><strong>ETA: </strong>${data.remainingTime}</span>`
+          console.log(document.getElementById("+"+id))
+          const ETA = document.getElementById("+"+id)
+          ETA.outerHTML = `<span style="padding-right:4em;max-width: 6em;" id="+${id}"><strong>ETA: </strong>${data.remainingTime}</span>`
           // <span style="padding-right:4em;max-width: 4em;" id="+903853"><strong></strong></span>
         } else {
           console.warn('Inner fill element not found.');
         }
       } else {
-        console.warn(`Progress bar with id ${progressBarId} not found.`);
+        console.warn(`Progress bar with id ${id} not found.`);
       }
     } catch (error) {
       console.error('Error checking queue status:', error);

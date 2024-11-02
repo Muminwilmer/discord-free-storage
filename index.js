@@ -55,7 +55,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
     // Send the split files to the specified Discord channel
     await sendSplitFiles(client, channelId, filePath, file.originalname, JSON.parse(body.encrypted), body.password, body.id);
-
+id
     res.send('File received successfully!'); // Respond to the client
   } else {
     res.status(400).send('File upload failed.'); // Respond with an error if no file was uploaded
@@ -70,12 +70,11 @@ app.get('/files', (req, res) => {
   const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8')); // Read the files.json data
   const safeData = data.map(item => ({
     encrypted: item.encrypted,
-    id: item.ids[0] || null, // Get the first ID or null
+    id: item.id || null, // Get the first ID or null
     name: item.name,
     size: item.size,
     type: item.type,
     finished: item.finished,
-    shortId: item.id || null // Get the short id (Soon to be standard ID!)
   }));
 
   res.send(safeData); // Send the list of files as JSON
@@ -124,10 +123,10 @@ app.get('/download', async (req, res) => {
   Example: Sending a GET request to http://localhost:3000/queue?name=test&type=download&start=timestamp.
 */
 app.get('/queue', async (req, res) => {
-  let name = req.query.name; // Get the name from query parameters
+  let id = req.query.id; // Get the name from query parameters
   const type = req.query.type + "Queue"; // Determine the queue type (downloadQueue, uploadQueue, etc.)
 
-  const result = client[type].get(name); // Retrieve the result from the appropriate queue
+  const result = client[type].get(id); // Retrieve the result from the appropriate queue
   if (!result) {
     res.send({ done: true }); // If no result found, send done status
     return;
@@ -159,15 +158,15 @@ app.get('/queue', async (req, res) => {
   // Special handling for download queue to get the name
   if (type === "downloadQueue") {
     const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8')); // Read file data
-    const block = data.find(block => block.ids.includes(name)); // Find the block for the name
-    name = block.name; // Update name with the found block name
+    const block = data.find(block => block.id.includes(id)); // Find the block for the name
+    id = block.id; // Update name with the found block name
   }
 
   // Respond with progress and estimated remaining time
   res.status(200).send({
     progress: `${Math.floor(progressPercent * 10) / 10}%`, // Send formatted progress
     remainingTime: timeString.trim(), // Send formatted remaining time
-    name: name // Send the name of the file or operation
+    name: id // Send the name of the file or operation
   });
 });
 

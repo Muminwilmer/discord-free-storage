@@ -1,64 +1,95 @@
 import fs from 'fs';
+import path from 'path';
+import fetch from 'node-fetch'; // Ensure fetch is imported if using it in Node.js
+
 async function fetchFiles(client, id, channel, password) {
   try {
+    // Load file details from JSON
     const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8'));
-    const result = data.find(block => block.ids.includes(id));
+    const result = data.find(block => block.id.includes(id));
 
     if (!result) {
-      console.log("No result")
+      console.log("No result found");
       return;
     }
 
-    console.log(result);
-    client.downloadQueue.set(id, { name: id, files: 0, full: result.ids.length, start:Date.now() });
+    // Initialize the download queue
+    client.downloadQueue.set(id, { name: id, files: 0, full: result.ids.length, start: Date.now() });
 
-    const fileList = await Promise.all(result.ids.map(async (fileId) => {
-      return await fetchDiscord(client, fileId, channel, id);
-    }));
+    // Directory to store temporary chunks
+    const tempDir = `./temp/${id}`;
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-    console.log(fileList);
-    const fullFile = Buffer.concat(fileList);
-    
-    if (result.encrypted){
-      console.log("File is encrypted, decrypting using password!")
-      const decrypt = require('./decrypt')
-      const decryptedFile = await decrypt(fullFile, password)
-      return decryptedFile
+    // Download each chunk and save to a temporary file
+    for (const [index, fileId] of result.ids.entries()) {
+      await fetchAndSaveChunk(client, fileId, channel, tempDir, index, password, result.encrypted, id);
     }
-    console.log("Complete! Sending back file.")
-    return fullFile
+
+    // Concatenate all chunks into the final file
+    const finalFilePath = `./downloads/${result.name}${result.type}`;
+    await concatenateChunks(tempDir, finalFilePath, result.ids.length);
+
+    // Cleanup: remove temporary files and directory
+    fs.rmSync(tempDir, { recursive: true, force: true });
+
+    console.log("Download complete! File saved at:", finalFilePath);
+    return finalFilePath;
   } catch (error) {
     console.error("Error fetching files:", error);
   }
 }
 
-async function fetchDiscord(client, id, channelId, topId) {
+// Helper to fetch a single chunk, decrypt if needed, and save to disk
+async function fetchAndSaveChunk(client, fileId, channelId, tempDir, index, password, isEncrypted, topId) {
   const channel = await client.channels.fetch(channelId);
-  if (!channel){
-    console.log("No channel")
-    return;
-  }
-  const fetchedMessage = await channel.messages.fetch(id)
+  const fetchedMessage = await channel.messages.fetch(fileId);
 
-  if (fetchedMessage.attachments.size == 0) {
-    console.error(`No attachments found for id: ${messageId}`);
-    return null;
+  if (!fetchedMessage.attachments.size) {
+    console.error(`No attachments found for id: ${fileId}`);
+    return;
   }
 
   const attachment = fetchedMessage.attachments.first();
-
-  const response = await fetch(attachment.url)
+  const response = await fetch(attachment.url);
   const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
+  let buffer = Buffer.from(arrayBuffer);
 
-  console.log(`Downloaded ${attachment.name} with size ${Math.round(buffer.byteLength/1000/1000)} MB.`);
+  // Decrypt if required
+  if (isEncrypted) {
+    const decrypt = require('./decrypt');
+    buffer = await decrypt(buffer, password);
+  }
+
+  // Save chunk as a temporary file
+  const tempFilePath = path.join(tempDir, `chunk_${index}`);
+  fs.writeFileSync(tempFilePath, buffer);
+  
+  // Update download progress in queue
   const result = client.downloadQueue.get(topId);
   if (result) {
     result.files++;
     client.downloadQueue.set(topId, result);
-    console.log(result.files)
+    console.log(`Downloaded chunk ${index + 1}/${result.full}`);
   }
-  
-  return buffer
 }
+
+// Concatenate all chunks into a final file
+async function concatenateChunks(tempDir, finalFilePath, chunkCount) {
+  const writeStream = fs.createWriteStream(finalFilePath);
+
+  for (let i = 0; i < chunkCount; i++) {
+    const chunkPath = path.join(tempDir, `chunk_${i}`);
+    const chunkStream = fs.createReadStream(chunkPath);
+
+    // Pipe chunk into final file
+    await new Promise((resolve, reject) => {
+      chunkStream.pipe(writeStream, { end: false });
+      chunkStream.on('end', resolve);
+      chunkStream.on('error', reject);
+    });
+  }
+
+  writeStream.end(); // Close the write stream when done
+}
+
 export default fetchFiles
