@@ -19,7 +19,7 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
   const stats = await fs.promises.stat(filePath);
   
   // Set initial file queue info
-  const initialQueueData = { name: fileName, files: 0, full: Math.ceil(stats.size / (1024 * 1024) / 10) };
+  const initialQueueData = { name: fileName, files: 0, full: Math.ceil(stats.size / (1024 * 1024) / 10), start:Date.now() };
   client.uploadQueue.set(fileName, initialQueueData);
 
   const readStream = fs.createReadStream(filePath, { highWaterMark: 10 * 1024 * 1024 }); // Read in 10 MB chunks

@@ -18,6 +18,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (event) =
   if (response.ok) {
     // alert('File received successfully!');
     pollQueue(file.name,"Upload", id)
+    loadFiles()
   } else {
     alert('File upload failed.');
   }
@@ -45,11 +46,13 @@ async function loadFiles() {
       const fileInfo = document.createElement('div');
       fileInfo.classList.add('file-info');
       fileInfo.innerHTML = `
-        <span style="padding-right:3em;max-width: 3em;"><strong>Name:</strong> ${file.name}</span>
-        <span style="padding-right:3em;max-width: 3em;"><strong>Type:</strong> ${file.type}</span>
-        <span style="padding-right:3em;max-width: 3em;"><strong>Size:</strong> ${file.size}</span>
-        <span style="padding-right:3em;max-width: 3em;"><strong>Encrypted:</strong> ${file.encrypted}</span>
+        <span style="padding-right:4em;max-width: 4em;"><strong>Name:</strong> ${file.name}${file.type}</span>
+        <span style="padding-right:4em;max-width: 4em;"><strong>Size:</strong> ${file.size}</span>
+        <span style="padding-right:4em;max-width: 4em;"><strong>Encrypted:</strong> ${file.encrypted}</span>
       `;
+      if (!file?.finished){
+        fileInfo.innerHTML += `<span style="padding-right:4em;max-width: 4em;" id="+${id}"><strong></strong></span>`
+      }
 
       const fileActions = document.createElement('div');
       fileActions.classList.add('file-actions');
@@ -57,10 +60,32 @@ async function loadFiles() {
       const buttonDownload = document.createElement('button');
       buttonDownload.innerHTML = "Download";
       buttonDownload.dataset.id = id;
+      fileActions.appendChild(buttonDownload);
+      
 
       const buttonDelete = document.createElement('button');
       buttonDelete.innerHTML = "Delete";
       buttonDelete.dataset.id = id;
+      fileActions.appendChild(buttonDelete);
+
+      if (!file?.finished){
+        const buttonCheck = document.createElement('button');
+        buttonCheck.innerHTML = "Check";
+        buttonCheck.dataset.id = id;
+
+        buttonCheck.addEventListener('click', async () => {
+          const fileId = buttonCheck.dataset.id;
+          try {
+            pollQueue(file.name+file.type, "Upload", fileId) 
+            buttonCheck.remove()
+          } catch (error) {
+            console.error('Error deleting file:', error);
+          }
+        });
+
+        fileActions.appendChild(buttonCheck)
+      }
+
 
       const progressBar = document.createElement('div');
       progressBar.classList.add('progress-bar');
@@ -101,8 +126,6 @@ async function loadFiles() {
         }
       });
 
-      fileActions.appendChild(buttonDownload);
-      fileActions.appendChild(buttonDelete);
 
       fileItem.appendChild(fileInfo);
       fileItem.appendChild(fileActions);
@@ -115,7 +138,6 @@ async function loadFiles() {
 }
 async function pollQueue(fileName, type, progressBarId) {
   const start = Date.now()
-  loadFiles()
   const intervalId = setInterval(async () => {
     try {
       const response = await fetch(`/queue?name=${fileName}&type=${type.toLowerCase()}&start=${start}`);
@@ -132,6 +154,10 @@ async function pollQueue(fileName, type, progressBarId) {
         bar.style.display = 'block';  // Show the progress bar
         if (fill) {
           fill.style.width = data.progress;  // Set the width to the progress value
+          console.log(document.getElementById("+"+progressBarId))
+          const ETA = document.getElementById("+"+progressBarId)
+          ETA.outerHTML = `<span style="padding-right:4em;max-width: 6em;" id="+${progressBarId}"><strong>ETA: </strong>${data.remainingTime}</span>`
+          // <span style="padding-right:4em;max-width: 4em;" id="+903853"><strong></strong></span>
         } else {
           console.warn('Inner fill element not found.');
         }

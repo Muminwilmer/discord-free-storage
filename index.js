@@ -126,7 +126,6 @@ app.get('/download', async (req, res) => {
 app.get('/queue', async (req, res) => {
   let name = req.query.name; // Get the name from query parameters
   const type = req.query.type + "Queue"; // Determine the queue type (downloadQueue, uploadQueue, etc.)
-  const start = req.query.start; // Get the start timestamp
 
   const result = client[type].get(name); // Retrieve the result from the appropriate queue
   if (!result) {
@@ -139,15 +138,23 @@ app.get('/queue', async (req, res) => {
   const totalFiles = result.full;
   const progressPercent = (completedFiles / totalFiles) * 100; // Percentage of completion
 
-  const elapsedTime = Date.now() - start; // Calculate elapsed time
+  const elapsedTime = Date.now() - result.start; // Calculate elapsed time
   const averageTimePerFile = elapsedTime / completedFiles; // Average time per file
   const remainingFiles = totalFiles - completedFiles; // Remaining files
   const estimatedRemainingTime = remainingFiles * averageTimePerFile; // Estimated remaining time
 
   // Convert remaining time to minutes and seconds
   const remainingSeconds = Math.floor(estimatedRemainingTime / 1000);
-  const remainingMinutes = Math.floor(remainingSeconds / 60);
-  const remainingSecondsFormatted = remainingSeconds % 60;
+  const remainingHours = Math.floor(remainingSeconds / 3600); // Total hours
+  const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60); // Minutes after hours are accounted for
+  const remainingSecondsFormatted = remainingSeconds % 60; // Remaining seconds after hours and minutes
+  
+  // Put together the time string
+  let timeString = '';
+  if (remainingHours > 0) timeString += `${remainingHours}h `;
+  if (remainingMinutes > 0) timeString += `${remainingMinutes}m `;
+  if (remainingSecondsFormatted > 0 || timeString == '') timeString += `${remainingSecondsFormatted}s`;
+  
 
   // Special handling for download queue to get the name
   if (type === "downloadQueue") {
@@ -159,7 +166,7 @@ app.get('/queue', async (req, res) => {
   // Respond with progress and estimated remaining time
   res.status(200).send({
     progress: `${Math.floor(progressPercent * 10) / 10}%`, // Send formatted progress
-    remainingTime: `${remainingMinutes}m ${remainingSecondsFormatted}s`, // Send formatted remaining time
+    remainingTime: timeString, // Send formatted remaining time
     name: name // Send the name of the file or operation
   });
 });

@@ -10,7 +10,7 @@ async function fetchFiles(client, id, channel, password) {
     }
 
     console.log(result);
-    client.downloadQueue.set(id, { name: id, files: 0, full: result.ids.length });
+    client.downloadQueue.set(id, { name: id, files: 0, full: result.ids.length, start:Date.now() });
 
     const fileList = await Promise.all(result.ids.map(async (fileId) => {
       return await fetchDiscord(client, fileId, channel, id);
