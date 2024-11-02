@@ -138,7 +138,7 @@ app.get('/download', async (req, res) => {
     // Set the headers for file download
     res.set({
       'Content-Type': mime.lookup(filePath) || "application/octet-stream", // Set the file type
-      'Content-Disposition': `attachment; filename="${name}"`, // Set the filename for download
+      'Content-Disposition': `attachment; filename="${name}.${file}"`, // Set the filename for download
       'Content-Length': fs.statSync(filePath).size // Set the content length
     });
 

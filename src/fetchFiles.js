@@ -27,7 +27,7 @@ async function fetchFiles(client, id, channel, password) {
 
     // Concatenate all chunks into the final file
     const finalFilePath = `./downloads/${result.id}`;
-    await concatenateChunks(tempDir, finalFilePath, result.messageId.length);
+    await concatenateChunks(tempDir, finalFilePath, result.messageId.length, id);
 
     // Cleanup: remove temporary files and directory
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -108,11 +108,11 @@ async function fetchAndSaveChunk(client, fileId, channelId, tempDir, index, pass
 }
 
 // Concatenate all chunks into a final file
-async function concatenateChunks(tempDir, finalFilePath, chunkCount) {
+async function concatenateChunks(tempDir, finalFilePath, chunkCount, id) {
   const writeStream = fs.createWriteStream(finalFilePath);
 
   for (let i = 0; i < chunkCount; i++) {
-    const chunkPath = path.join(tempDir, `${id}_${index}`);
+    const chunkPath = path.join(tempDir, `${id}_${i}`);
     const chunkStream = fs.createReadStream(chunkPath);
 
     // Pipe chunk into final file
