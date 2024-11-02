@@ -50,9 +50,7 @@ async function loadFiles() {
         <span style="padding-right:4em;max-width: 4em;"><strong>Size:</strong> ${file.size}</span>
         <span style="padding-right:4em;max-width: 4em;"><strong>Encrypted:</strong> ${file.encrypted}</span>
       `;
-      if (!file?.finished){
-        fileInfo.innerHTML += `<span style="padding-right:4em;max-width: 4em;" id="+${id}"><strong></strong></span>`
-      }
+      fileInfo.innerHTML += `<span style="padding-right:4em;max-width: 4em;" id="+${id}"><strong></strong></span>`
 
       const fileActions = document.createElement('div');
       fileActions.classList.add('file-actions');
@@ -76,7 +74,7 @@ async function loadFiles() {
         buttonCheck.addEventListener('click', async () => {
           const fileId = buttonCheck.dataset.id;
           try {
-            pollQueue(file.name+file.type, "Upload", fileId) 
+            pollQueue(fileId, "Upload") 
             buttonCheck.remove()
           } catch (error) {
             console.error('Error deleting file:', error);
@@ -96,7 +94,7 @@ async function loadFiles() {
       buttonDownload.addEventListener('click', async () => {
         const fileId = buttonDownload.dataset.id;
         progressBar.style.display = 'block';
-        pollQueue(fileId,"Download")
+        pollQueue(fileId, "Download")
         try {
           const downloadResponse = await fetch(`/download?id=${fileId}&name=${file.name}&file=${file.type}&pass=${document.getElementById('encryptPassword').value}`);
 
@@ -140,7 +138,7 @@ async function pollQueue(id, type) {
   const start = Date.now()
   const intervalId = setInterval(async () => {
     try {
-      const response = await fetch(`/queue?name=${id}&type=${type.toLowerCase()}&start=${start}`);
+      const response = await fetch(`/queue?id=${id}&type=${type.toLowerCase()}&start=${start}`);
       const data = await response.json();
       const bar = document.getElementById(id);
 
@@ -156,7 +154,7 @@ async function pollQueue(id, type) {
           fill.style.width = data.progress;  // Set the width to the progress value
           console.log(document.getElementById("+"+id))
           const ETA = document.getElementById("+"+id)
-          ETA.outerHTML = `<span style="padding-right:4em;max-width: 6em;" id="+${id}"><strong>ETA: </strong>${data.remainingTime}</span>`
+          ETA.outerHTML = `<span style="padding-right:4em;max-width: 6em;" id="+${id}"><strong>ETA: </strong>${data.remainingTime||"inf"}</span>`
           // <span style="padding-right:4em;max-width: 4em;" id="+903853"><strong></strong></span>
         } else {
           console.warn('Inner fill element not found.');

@@ -55,7 +55,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
     // Send the split files to the specified Discord channel
     await sendSplitFiles(client, channelId, filePath, file.originalname, JSON.parse(body.encrypted), body.password, body.id);
-id
+
     res.send('File received successfully!'); // Respond to the client
   } else {
     res.status(400).send('File upload failed.'); // Respond with an error if no file was uploaded
@@ -92,25 +92,33 @@ app.get('/download', async (req, res) => {
 
   try {
     // Fetch files using the provided ID and password
-    const fileBuffers = await fetchFiles(client, id, process.env.discordChannel, password);
+    console.log(id)
+    const filePath = await fetchFiles(client, id, process.env.discordChannel, password);
 
-    if (!fileBuffers || !fileBuffers.length) {
+    if (!filePath || !fs.existsSync(filePath)) {
       return res.status(404).send('No files found for the specified ID.'); // Error if no files found
     }
 
     // Set the headers for file download
     res.set({
-      'Content-Type': mime.lookup(file) || "application/octet-stream", // Set the file type
+      'Content-Type': mime.lookup(filePath) || "application/octet-stream", // Set the file type
       'Content-Disposition': `attachment; filename="${name}"`, // Set the filename for download
-      'Content-Length': fileBuffers.length // Set the content length
+      'Content-Length': fs.statSync(filePath).size // Set the content length
     });
 
-    res.status(200).send(fileBuffers); // Send the file buffers as the response
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+
+    // res.status(200).send(filePath); // Send the file buffers as the response
 
     // Cleanup after a delay
     setTimeout(() => {
       client.downloadQueue.delete(id); // Remove the ID from the download queue
       console.log(`Removed ${id} from downloadQueue`); // Log removal
+      fs.unlink(filePath, (err) => {
+        if (err) console.error("Error deleting file:", err);
+      });
+      console.log("Deleted file.")
     }, 5000);
   } catch (error) {
     console.error("Error during file download:", error); // Log any errors
@@ -125,8 +133,11 @@ app.get('/download', async (req, res) => {
 app.get('/queue', async (req, res) => {
   let id = req.query.id; // Get the name from query parameters
   const type = req.query.type + "Queue"; // Determine the queue type (downloadQueue, uploadQueue, etc.)
-
+  console.log(type)
+  console.log(client[type])
+  console.log(id)
   const result = client[type].get(id); // Retrieve the result from the appropriate queue
+  console.log(result)
   if (!result) {
     res.send({ done: true }); // If no result found, send done status
     return;
@@ -156,11 +167,11 @@ app.get('/queue', async (req, res) => {
   
 
   // Special handling for download queue to get the name
-  if (type === "downloadQueue") {
-    const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8')); // Read file data
-    const block = data.find(block => block.id.includes(id)); // Find the block for the name
-    id = block.id; // Update name with the found block name
-  }
+  // if (type === "downloadQueue") {
+  //   const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8')); // Read file data
+  //   const block = data.find(block => block.id.includes(id)); // Find the block for the name
+  //   id = block.id; // Update name with the found block name
+  // }
 
   // Respond with progress and estimated remaining time
   res.status(200).send({

@@ -4,7 +4,7 @@ function getKey(key) {
   return crypto.createHash('sha256').update(key).digest(); // SHA-256 hash to get 32 bytes
 }
 
-function encrypt(buffer, key) {
+async function encrypt(buffer, key) {
   const iv = crypto.randomBytes(16); // Generate a random initialization vector
   const derivedKey = getKey(key);    // Ensure key is 32 bytes
   const cipher = crypto.createCipheriv('aes-256-cbc', derivedKey, iv);

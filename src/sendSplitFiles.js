@@ -1,7 +1,7 @@
 import fs from 'fs';
 import encrypt from './encrypt.js';
 
-async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, password, shortId) {
+async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, password, id) {
   const splitName = fileName.match(/^([^.]+)(\..+)?$/);
   
   const fileDetails = {
@@ -10,8 +10,8 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
     encrypted: encrypted || false,
     size: 0, // Initialize size, will be calculated during sending
     finished: false,
-    id: shortId,
-    ids: [],
+    id: id,
+    messageId: [],
   };
   console.log(fileDetails)
 
@@ -19,9 +19,9 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
   const stats = await fs.promises.stat(filePath);
   
   // Set initial file queue info
-  const initialQueueData = { name: fileName, files: 0, full: Math.ceil(stats.size / (1024 * 1024) / 10), start:Date.now() };
-  client.uploadQueue.set(fileName, initialQueueData);
-
+  const initialQueueData = { name: fileName, id:id, files: 0, full: Math.ceil(stats.size / (1024 * 1024) / 10), start:Date.now() };
+  client.uploadQueue.set(id, initialQueueData);
+  console.log(client.uploadQueue)
   const readStream = fs.createReadStream(filePath, { highWaterMark: 10 * 1024 * 1024 }); // Read in 10 MB chunks
 
   readStream.on('data', async (chunk) => {
@@ -29,10 +29,9 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
     try {
       // Encrypt the chunk if needed
       if (encrypted) {
-        
-        chunk = encrypt(chunk, password);
+        chunk = await encrypt(chunk, password);
       }
-
+      // console.log(chunk)
       const channel = await client.channels.fetch(channelId);
       const partFileName = `part`; // Naming the part
 
@@ -42,14 +41,14 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
       });
 
       // Update file details and upload queue
-      fileDetails.ids.push(sentMessage.id);
+      fileDetails.messageId.push(sentMessage.id);
       fileDetails.size += chunk.length; // Update size for the fileDetails
 
       // Update upload queue
-      const result = client.uploadQueue.get(fileName);
+      const result = client.uploadQueue.get(id);
       if (result) {
         result.files++;
-        client.uploadQueue.set(fileName, result);
+        client.uploadQueue.set(id, result);
       }
     } catch (error) {
       console.error("Error sending message or fetching channel:", error);

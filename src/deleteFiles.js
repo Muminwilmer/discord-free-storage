@@ -1,14 +1,14 @@
 import fs from 'fs';
 async function deleteFiles(client, id, channelId) {
   const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8'));
-  const result = data.find(block => block.ids.includes(id));
+  const result = data.find(block => block.id === String(id));
 
   if (!result) {
     console.log("No result")
     return;
   }
 
-  result.ids.forEach(async (id, index) => {
+  result.messageId.forEach(async (id, index) => {
     const channel = await client.channels.fetch(channelId);
     if (!channel){
       console.log("No channel")
