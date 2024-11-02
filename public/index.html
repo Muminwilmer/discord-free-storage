@@ -52,20 +52,24 @@
     <h1>Upload a File</h1>
     <form id="uploadForm">
       <div>
-        <input type="file" id="fileInput" name="file" required>
+        <input type="file" id="fileInput" style="color: rgba(0, 0, 0, 0)" name="file" required>
+        <div style="padding-top: 2px;">
+          <input type="text" id="fileNameInput" style="display: block;width: 100%;max-width: 35em;min-width: fit-content;padding: 4px;" placeholder="name" required>
+        </div>
+        
       </div>
       <br>
       <div>
         <input type="checkbox" id="encryptedCheck" checked>
         <label for="encryptedCheck">Encrypt file</label>
-        <input type="password" id="encryptPassword" style="display: block;" placeholder="Upload/Download!" required>
+        <input type="password" id="encryptPassword" style="display: block;" placeholder="Password" required>
       </div>
       <br>
       <button type="submit">Upload File</button>
     </form>
 
-    <h2>Downloading/Uploading</h2>
-    <div id="loading"></div>
+    <!-- <h2>Downloading/Uploading</h2>
+    <div id="loading"></div> -->
 
     <h2>Files List</h2>
     <button id="fetchFiles">Get Files</button>

@@ -16,7 +16,6 @@ async function fetchFiles(client, id, channel, password) {
     
     // Initialize the download queue
     client.downloadQueue.set(id, { name: result.name, id:id, files: 0, full: result.messageId.length, start: Date.now() });
-    console.log(client.downloadQueue)
     // Directory to store temporary chunks
     const tempDir = `./temp/${id}`;
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
@@ -27,7 +26,7 @@ async function fetchFiles(client, id, channel, password) {
     }
 
     // Concatenate all chunks into the final file
-    const finalFilePath = `./downloads/${result.name}${result.type}`;
+    const finalFilePath = `./downloads/${result.id}`;
     await concatenateChunks(tempDir, finalFilePath, result.messageId.length);
 
     // Cleanup: remove temporary files and directory
@@ -60,7 +59,7 @@ async function fetchWithTimeout(url, timeout = 30000) {
 }
 
 // Helper to fetch a single chunk, decrypt if needed, and save to disk
-async function fetchAndSaveChunk(client, fileId, channelId, tempDir, index, password, isEncrypted, topId, retryCount = 3) {
+async function fetchAndSaveChunk(client, fileId, channelId, tempDir, index, password, isEncrypted, id, retryCount = 3) {
   const channel = await client.channels.fetch(channelId);
   const fetchedMessage = await channel.messages.fetch(fileId);
 
@@ -93,14 +92,14 @@ async function fetchAndSaveChunk(client, fileId, channelId, tempDir, index, pass
   console.log(buffer)
   // Save chunk as a temporary file
   if (Buffer.isBuffer(buffer)) {
-    const tempFilePath = path.join(tempDir, `chunk_${index}`);
+    const tempFilePath = path.join(tempDir, `${id}_${index}`);
     fs.writeFileSync(tempFilePath, buffer);
     
     // Update download progress in queue
-    const result = client.downloadQueue.get(topId);
+    const result = client.downloadQueue.get(id);
     if (result) {
       result.files++;
-      client.downloadQueue.set(topId, result);
+      client.downloadQueue.set(id, result);
       console.log(`Downloaded chunk ${index + 1}/${result.full}`);
     }
   } else {
@@ -113,7 +112,7 @@ async function concatenateChunks(tempDir, finalFilePath, chunkCount) {
   const writeStream = fs.createWriteStream(finalFilePath);
 
   for (let i = 0; i < chunkCount; i++) {
-    const chunkPath = path.join(tempDir, `chunk_${i}`);
+    const chunkPath = path.join(tempDir, `${id}_${index}`);
     const chunkStream = fs.createReadStream(chunkPath);
 
     // Pipe chunk into final file

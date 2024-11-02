@@ -27,12 +27,36 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploading/'); // Directory to save uploaded files
   },
-  // filename: (req, file, cb) => {
-  //   cb(null, file.originalname); // Use original file name
-  // }
+  filename: (req, file, cb) => {
+    cb(null, file.originalname);
+  }
 });
 
 const upload = multer({ storage });
+
+
+// Clear out uploading and downloading on boot
+const uploadPath = path.join(__dirname, 'uploading');
+console.log("Attempting to delete:", uploadPath)
+fs.readdir(uploadPath, (err, files) => {
+  if (files.length==0)return;
+  for (const file of files) {
+    fs.unlink(path.join(uploadPath, file), () => {})
+  }
+});
+
+const downloadPath = path.join(__dirname, 'downloads');
+console.log("Attempting to delete:", downloadPath)
+fs.readdir(downloadPath, (err, files) => {
+  if (files.length==0)return;
+  for (const file of files) {
+    fs.unlink(path.join(downloadPath, file), () => {});
+  }
+});
+
+
+
+
 
 /*
   Define a route to serve the main HTML page.
@@ -48,15 +72,27 @@ app.get('/', (req, res) => {
 */
 app.post('/upload', upload.single('file'), async (req, res) => {
   if (req.file) { // Check if a file was uploaded
-    const filePath = path.join(__dirname, 'uploading', req.file.filename); // Construct the file path
-    const file = req.file; // Get the uploaded file information
-    const body = req.body; // Get additional form data
-    const channelId = process.env.discordChannel; // Get Discord channel ID from environment variables
+    const originalFilePath = path.join(__dirname, 'uploading', req.file.filename); // Path of the original file
+    const newFilePath = path.join(__dirname, 'uploading', req.body.id); // New path using body.id as the filename
 
-    // Send the split files to the specified Discord channel
-    await sendSplitFiles(client, channelId, filePath, file.originalname, JSON.parse(body.encrypted), body.password, body.id);
+    // Rename the file to use req.body.id
+    fs.rename(originalFilePath, newFilePath, async (err) => {
+      if (err) {
+        console.error('Error renaming file:', err);
+        return res.status(500).send('Error processing the file.');
+      }
 
-    res.send('File received successfully!'); // Respond to the client
+      // Proceed with further processing after renaming
+      const file = req.file; // Get the uploaded file information
+      const body = req.body; // Get additional form data
+      const channelId = process.env.discordChannel; // Get Discord channel ID from environment variables
+      const fileName = body.fileName || file.originalname;
+
+      // Send the split files to the specified Discord channel
+      await sendSplitFiles(client, channelId, newFilePath, fileName, JSON.parse(body.encrypted), body.password, body.id);
+
+      res.send('File received and renamed successfully!'); // Respond to the client
+    });
   } else {
     res.status(400).send('File upload failed.'); // Respond with an error if no file was uploaded
   }
@@ -133,11 +169,7 @@ app.get('/download', async (req, res) => {
 app.get('/queue', async (req, res) => {
   let id = req.query.id; // Get the name from query parameters
   const type = req.query.type + "Queue"; // Determine the queue type (downloadQueue, uploadQueue, etc.)
-  console.log(type)
-  console.log(client[type])
-  console.log(id)
   const result = client[type].get(id); // Retrieve the result from the appropriate queue
-  console.log(result)
   if (!result) {
     res.send({ done: true }); // If no result found, send done status
     return;
@@ -188,6 +220,7 @@ app.get('/queue', async (req, res) => {
 app.get('/delete', async (req, res) => {
   const id = req.query.id; // Retrieve the ID from query parameters
   await deleteFiles(client, id, process.env.discordChannel); // Delete the file using the provided ID
+
   res.status(200).send({ deleted: true }); // Respond with a success message
 });
 

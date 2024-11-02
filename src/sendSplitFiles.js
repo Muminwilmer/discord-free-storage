@@ -17,12 +17,15 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
 
   await addToJson(fileDetails);
   const stats = await fs.promises.stat(filePath);
-  
+  const totalChunks = Math.ceil(stats.size / (10 * 1024 * 1024));
+
   // Set initial file queue info
-  const initialQueueData = { name: fileName, id:id, files: 0, full: Math.ceil(stats.size / (1024 * 1024) / 10), start:Date.now() };
+  const initialQueueData = { name: fileName, id:id, files: 0, full: totalChunks, start:Date.now() };
   client.uploadQueue.set(id, initialQueueData);
   console.log(client.uploadQueue)
-  const readStream = fs.createReadStream(filePath, { highWaterMark: 10 * 1024 * 1024 }); // Read in 10 MB chunks
+
+  const readStream = fs.createReadStream(filePath, { highWaterMark: 10 * 1024 * 1024 });
+  let sentChunks = 0; // Counter for sent chunks
 
   readStream.on('data', async (chunk) => {
     readStream.pause(); // Pause the stream to handle the chunk
@@ -50,6 +53,8 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
         result.files++;
         client.uploadQueue.set(id, result);
       }
+
+      sentChunks++
     } catch (error) {
       console.error("Error sending message or fetching channel:", error);
     } finally {
@@ -59,6 +64,11 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
 
   readStream.on('end', async () => {
     // Mark the file as finished
+    while (sentChunks < totalChunks) {
+      console.log(`Waiting for ${sentChunks}==${totalChunks}`)
+      await new Promise(resolve => setTimeout(resolve, 100)); // Wait for all chunks to be sent
+    }
+
     fileDetails.finished = true;
     fileDetails.size = (fileDetails.size / (1024 * 1024)).toFixed(2) + "MB";
 

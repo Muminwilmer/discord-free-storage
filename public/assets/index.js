@@ -3,13 +3,22 @@ document.getElementById('uploadForm').addEventListener('submit', async (event) =
 
   const fileInput = document.getElementById('fileInput');
   const file = fileInput.files[0];
-  const formData = new FormData();
+  const fileName = document.getElementById('fileNameInput').value;
   const id = Math.floor(Math.random()*10000000)
+
+  if(!file)return;
+  if(!fileName)return;
+
+  const formData = new FormData();
+
   formData.append('file', file);
+  formData.append('fileName', fileName)
   formData.append('encrypted', document.getElementById('encryptedCheck').checked);
   formData.append('password', document.getElementById('encryptPassword').value);
   formData.append('id', id);
 
+  document.getElementById('fileInput').value = ""
+  document.getElementById('fileNameInput').value = ""
   const response = await fetch('/upload', {
     method: 'POST',
     body: formData
@@ -23,6 +32,13 @@ document.getElementById('uploadForm').addEventListener('submit', async (event) =
     alert('File upload failed.');
   }
 });
+document.getElementById('fileInput').addEventListener('change', function(event) {
+  if (event?.target?.files){
+    document.getElementById('fileNameInput').value = event.target.files[0].name;
+  }
+  
+});
+
 document.getElementById('fetchFiles').addEventListener('click', async () => {
   loadFiles()
 });
@@ -155,7 +171,6 @@ async function pollQueue(id, type) {
           console.log(document.getElementById("+"+id))
           const ETA = document.getElementById("+"+id)
           ETA.outerHTML = `<span style="padding-right:4em;max-width: 6em;" id="+${id}"><strong>ETA: </strong>${data.remainingTime||"inf"}</span>`
-          // <span style="padding-right:4em;max-width: 4em;" id="+903853"><strong></strong></span>
         } else {
           console.warn('Inner fill element not found.');
         }
