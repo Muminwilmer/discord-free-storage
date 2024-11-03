@@ -2,11 +2,11 @@ import fs from 'fs';
 import encrypt from './encrypt.js';
 
 async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, password, id) {
-  const splitName = fileName.match(/^([^.]+)(\..+)?$/);
+  const splitName = fileName.split(/\.(\w+)$/);
   
   const fileDetails = {
-    name: splitName[1] || "corrupt",
-    type: splitName[2] || "",
+    name: splitName[0] || "corrupt",
+    type: splitName[1] || "",
     encrypted: encrypted || false,
     size: 0, // Initialize size, will be calculated during sending
     finished: false,
@@ -22,7 +22,6 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
   // Set initial file queue info
   const initialQueueData = { name: fileName, id:id, files: 0, full: totalChunks, start:Date.now() };
   client.uploadQueue.set(id, initialQueueData);
-  console.log(client.uploadQueue)
 
   const readStream = fs.createReadStream(filePath, { highWaterMark: 10 * 1024 * 1024 });
   let sentChunks = 0; // Counter for sent chunks
@@ -70,7 +69,7 @@ async function sendSplitFiles(client, channelId, filePath, fileName, encrypted, 
     }
 
     fileDetails.finished = true;
-    fileDetails.size = (fileDetails.size / (1024 * 1024)).toFixed(2) + "MB";
+    fileDetails.size = await formatFileSize(fileDetails.size);
 
     await addToJson(fileDetails); // Save details to JSON
     client.uploadQueue.delete(fileName); // Clean up the upload queue
@@ -112,6 +111,20 @@ async function addToJson(newData) {
   } catch (error) {
     console.error("Error writing to files.json:", error);
   }
+}
+
+async function formatFileSize(size) {
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let index = 0;
+
+  // Loop to determine the appropriate unit
+  while (size >= 1024 && index < units.length - 1) {
+      size /= 1024;
+      index++;
+  }
+
+  // Format to two decimal places and append the unit
+  return size.toFixed(2) + " " + units[index];
 }
 
 export default sendSplitFiles;

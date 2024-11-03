@@ -73,11 +73,11 @@ async function loadFiles() {
       const fileInfo = document.createElement('div');
       fileInfo.classList.add('file-info');
       fileInfo.innerHTML = `
-        <span style="padding-right:6.5em;max-width: 6em;"><strong>Name:</strong> ${file.name}${file.type}</span>
-        <span style="padding-right:6.5em;max-width: 6em;"><strong>Size:</strong> ${file.size}</span>
-        <span style="padding-right:6.5em;max-width: 6em;"><strong>Encrypted:</strong> ${file.encrypted}</span>
+        <span style=""><strong>Name:</strong> ${file.name}.${file.type}</span>
+        <span style=""><strong>Size:</strong> ${file.size}</span>
+        <span style="min-width:fit-content;"><strong>Encrypted:</strong> ${file.encrypted}</span>
       `;
-      fileInfo.innerHTML += `<span style="padding-right:6em;max-width: 6em;" id="+${id}"><strong></strong></span>`
+      fileInfo.innerHTML += `<span style="display:none;" id="+${id}"><strong></strong></span>`
 
       const fileActions = document.createElement('div');
       fileActions.classList.add('file-actions');
@@ -170,14 +170,29 @@ async function loadFiles() {
   }
 }
 async function pollQueue(id, type) {
-  const start = Date.now()
   const intervalId = setInterval(async () => {
     try {
-      const response = await fetch(`/queue?id=${id}&type=${type.toLowerCase()}&start=${start}`);
+      const response = await fetch(`/queue?id=${id}&type=${type.toLowerCase()}`);
       const data = await response.json();
       const bar = document.getElementById(id);
-
-      if (data?.done === true || parseInt(data.progress)>=100) {
+      const progress = data.progress
+      const remainingTime = data.remainingTime
+      const completed = data.completed // Completed files
+      const total = data.total // Total files
+    
+      // Convert remaining time to minutes and seconds
+      const remainingSeconds = Math.floor(remainingTime / 1000);
+      const remainingHours = Math.floor(remainingSeconds / 3600); // Total hours
+      const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60); // Minutes after hours are accounted for
+      const remainingSecondsFormatted = remainingSeconds % 60; // Remaining seconds after hours and minutes
+      
+      // Put together the time string
+      let timeString = '';
+      if (remainingHours > 0) timeString += `${remainingHours}h `;
+      /*if (remainingMinutes > 0) */timeString += `${remainingMinutes}m `;
+      /*if (remainingSecondsFormatted > 0 || timeString == '') */timeString += `${remainingSecondsFormatted}s`;
+      
+      if (data?.done === true || parseInt(progress)>=100) {
         loadFiles();
         clearInterval(intervalId);
       } else if (bar) {
@@ -185,9 +200,9 @@ async function pollQueue(id, type) {
         
         bar.style.display = 'block';  // Show the progress bar
         if (fill) {
-          fill.style.width = data.progress;  // Set the width to the progress value
+          fill.style.width = progress+"%";  // Set the width to the progress value
           const ETA = document.getElementById("+"+id)
-          ETA.outerHTML = `<span style="padding-right:4em;max-width: 6em;" id="+${id}"><strong>ETA: </strong>${data.remainingTime||"inf"}</span>`
+          ETA.outerHTML = `<span style="padding-left:6em;min-width:10em;" id="+${id}"><strong>ETA: </strong>${timeString||"0"}</span>`
         } else {
           console.warn('Inner fill element not found.');
         }

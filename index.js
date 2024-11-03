@@ -185,19 +185,6 @@ app.get('/queue', async (req, res) => {
   const remainingFiles = totalFiles - completedFiles; // Remaining files
   const estimatedRemainingTime = remainingFiles * averageTimePerFile; // Estimated remaining time
 
-  // Convert remaining time to minutes and seconds
-  const remainingSeconds = Math.floor(estimatedRemainingTime / 1000);
-  const remainingHours = Math.floor(remainingSeconds / 3600); // Total hours
-  const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60); // Minutes after hours are accounted for
-  const remainingSecondsFormatted = remainingSeconds % 60; // Remaining seconds after hours and minutes
-  
-  // Put together the time string
-  let timeString = '';
-  if (remainingHours > 0) timeString += `${remainingHours}h `;
-  if (remainingMinutes > 0) timeString += `${remainingMinutes}m `;
-  if (remainingSecondsFormatted > 0 || timeString == '') timeString += `${remainingSecondsFormatted}s`;
-  
-
   // Special handling for download queue to get the name
   // if (type === "downloadQueue") {
   //   const data = JSON.parse(fs.readFileSync('./data/files.json', 'utf8')); // Read file data
@@ -207,9 +194,11 @@ app.get('/queue', async (req, res) => {
 
   // Respond with progress and estimated remaining time
   res.status(200).send({
-    progress: `${Math.floor(progressPercent * 10) / 10}%`, // Send formatted progress
-    remainingTime: timeString.trim(), // Send formatted remaining time
-    name: id // Send the name of the file or operation
+    progress: `${Math.floor(progressPercent * 10) / 10}`, // Send formatted progress
+    remainingTime: estimatedRemainingTime, // Send formatted remaining time
+    name: id, // Send the name of the file or operation
+    completed: result.files,
+    total: result.full
   });
 });
 
